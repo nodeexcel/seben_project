@@ -1,0 +1,8 @@
+Sample Company Chat
+[12/06/2024, 10:30:15] John Smith: Hi, we are interested in your fresh salmon products
+[12/06/2024, 10:31:02] You: Hello John! We have Atlantic Salmon and Norwegian Trout available
+[12/06/2024, 10:32:45] John Smith: Can you send pricing for 500kg Atlantic Salmon?
+[12/06/2024, 10:35:00] You: Sure, I'll prepare a quote. What's your delivery address?
+[12/06/2024, 10:36:12] John Smith: 123 Harbor Street, Rotterdam, Netherlands
+[13/06/2024, 09:15:00] John Smith: We placed the order. Please confirm receipt.
+[13/06/2024, 09:20:30] You: Order confirmed. Delivery scheduled for next week.
