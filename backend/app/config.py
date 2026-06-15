@@ -1,8 +1,13 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+_ROOT_DIR = Path(__file__).resolve().parents[2]
+_ENV_FILE = _ROOT_DIR / ".env"
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql://seben:seben_dev_password@localhost:5432/seben_crm"
+    database_url: str = "postgresql://seben:seben123@localhost:5432/seben_crm"
     secret_key: str = "dev-secret-key"
     debug: bool = True
     cors_origins: str = "http://localhost:5173"
@@ -15,7 +20,7 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     class Config:
-        env_file = ".env"
+        env_file = str(_ENV_FILE)
         extra = "ignore"
 
 
