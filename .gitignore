@@ -29,3 +29,10 @@ uploads/
 # Database
 *.db
 postgres_data/
+
+#logs
+logs/backend.log
+logs/frontend.log
+scripts/start-backend.sh
+scripts/start-frontend.sh
+
