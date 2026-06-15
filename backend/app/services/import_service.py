@@ -17,7 +17,7 @@ from app.models import (
     Purchase,
 )
 from app.parsers import parse_file
-from app.services.linking import find_or_create_company, find_or_create_contact
+from app.services.linking import find_company_by_contact_name, find_or_create_company, find_or_create_contact
 from app.services.product_detection import classify_company_form, detect_form_in_text
 
 
@@ -83,7 +83,10 @@ def _persist_extraction(db: Session, result, document_id: int, source_type: str)
 
     company = None
     if result.company_name:
-        company = find_or_create_company(db, result.company_name)
+        if source_type == "whatsapp":
+            company = find_company_by_contact_name(db, result.company_name)
+        if not company:
+            company = find_or_create_company(db, result.company_name)
         companies_touched.append(company)
 
     for parsed_contact in result.contacts:
@@ -93,13 +96,15 @@ def _persist_extraction(db: Session, result, document_id: int, source_type: str)
             if contact_company not in companies_touched:
                 companies_touched.append(contact_company)
 
-        find_or_create_contact(
-            db,
-            name=parsed_contact.name,
-            email=parsed_contact.email,
-            phone=parsed_contact.phone,
-            company_id=contact_company.id if contact_company else None,
-        )
+        phones = parsed_contact.phones or ([parsed_contact.phone] if parsed_contact.phone else [None])
+        for index, phone in enumerate(phones):
+            find_or_create_contact(
+                db,
+                name=parsed_contact.name,
+                email=parsed_contact.email if index == 0 else None,
+                phone=phone,
+                company_id=contact_company.id if contact_company else None,
+            )
 
     for purchase_data in result.purchases:
         target = company

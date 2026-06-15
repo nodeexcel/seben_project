@@ -32,11 +32,17 @@ def _parse_vcf(filepath: str, output: ExtractionOutput) -> None:
             continue
         name = _get_vcard_name(card)
         email = _get_vcard_email(card)
-        phone = _get_vcard_phone(card)
+        phones = _get_vcard_phones(card)
         org = _get_vcard_org(card)
         if name:
             output.contacts.append(
-                ParsedContact(name=name, email=email, phone=phone, company_name=org)
+                ParsedContact(
+                    name=name,
+                    email=email,
+                    phone=phones[0] if phones else None,
+                    company_name=org,
+                    phones=phones,
+                )
             )
             if org and not output.company_name:
                 output.company_name = org
@@ -58,11 +64,35 @@ def _get_vcard_email(card) -> str | None:
     return None
 
 
+def _get_vcard_phones(card) -> list[str]:
+    if not hasattr(card, "tel"):
+        return []
+
+    preferred: list[str] = []
+    other: list[str] = []
+    for entry in card.contents.get("tel", []):
+        value = str(entry.value).strip()
+        if not value:
+            continue
+        params = getattr(entry, "params", {}) or {}
+        types = [str(t).lower() for t in params.get("TYPE", [])]
+        if "pref" in types:
+            preferred.append(value)
+        else:
+            other.append(value)
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for phone in preferred + other:
+        if phone not in seen:
+            seen.add(phone)
+            ordered.append(phone)
+    return ordered
+
+
 def _get_vcard_phone(card) -> str | None:
-    if hasattr(card, "tel"):
-        phones = card.contents.get("tel", [])
-        return str(phones[0].value) if phones else None
-    return None
+    phones = _get_vcard_phones(card)
+    return phones[0] if phones else None
 
 
 def _get_vcard_org(card) -> str | None:

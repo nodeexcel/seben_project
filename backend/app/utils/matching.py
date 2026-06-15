@@ -4,6 +4,12 @@ from rapidfuzz import fuzz
 from app.utils.normalize import normalize_company_name, normalize_email, normalize_phone
 
 
+def contact_name_match_score(name_a: str | None, name_b: str | None) -> float:
+    if not name_a or not name_b:
+        return 0.0
+    return fuzz.token_sort_ratio(name_a.strip().lower(), name_b.strip().lower())
+
+
 def company_match_score(name_a: str | None, name_b: str | None) -> float:
     norm_a = normalize_company_name(name_a)
     norm_b = normalize_company_name(name_b)

@@ -10,6 +10,7 @@ class ParsedContact:
     email: str | None = None
     phone: str | None = None
     company_name: str | None = None
+    phones: list[str] = field(default_factory=list)
 
 
 @dataclass
