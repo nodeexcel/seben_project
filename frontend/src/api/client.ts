@@ -145,10 +145,4 @@ export const api = {
     const qs = search.toString();
     return request<ProductAnalytics[]>(`/api/analytics/products${qs ? `?${qs}` : ''}`);
   },
-
-  importSamples: () =>
-    request<{ processed: number; failed: number; files: { file: string; status: string }[] }>(
-      '/api/import/samples',
-      { method: 'POST' }
-    ),
 };
