@@ -6,7 +6,8 @@ import type { CompanyListItem } from '../api/client';
 function categoryBadge(category: string) {
   const cls =
     category === 'Fresh' ? 'badge-fresh' :
-    category === 'Frozen' ? 'badge-frozen' : 'badge-unknown';
+    category === 'Frozen' ? 'badge-frozen' :
+    category === 'Both' ? 'badge-both' : 'badge-unknown';
   return <span className={`badge ${cls}`}>{category}</span>;
 }
 
@@ -16,10 +17,16 @@ export default function Companies() {
   const [q, setQ] = useState('');
   const [product, setProduct] = useState('');
   const [country, setCountry] = useState('');
+  const [category, setCategory] = useState('');
 
   const load = () => {
     setLoading(true);
-    api.listCompanies({ q: q || undefined, product: product || undefined, country: country || undefined })
+    api.listCompanies({
+      q: q || undefined,
+      product: product || undefined,
+      country: country || undefined,
+      category: category || undefined,
+    })
       .then(setCompanies)
       .catch(() => setCompanies([]))
       .finally(() => setLoading(false));
@@ -51,6 +58,12 @@ export default function Companies() {
           value={country}
           onChange={(e) => setCountry(e.target.value)}
         />
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="">All categories</option>
+          <option value="Fresh">Fresh</option>
+          <option value="Frozen">Frozen</option>
+          <option value="Both">Both</option>
+        </select>
         <button className="btn btn-primary" onClick={load}>Search</button>
       </div>
 
@@ -82,7 +95,7 @@ export default function Companies() {
                   <td>{c.country || '—'}</td>
                   <td>{categoryBadge(c.product_category)}</td>
                   <td>{c.contact_count}</td>
-                  <td>${c.total_revenue.toLocaleString()}</td>
+                  <td>€{c.total_revenue.toLocaleString()}</td>
                   <td>{c.total_quantity.toLocaleString()}</td>
                   <td>{c.last_interaction_date || '—'}</td>
                 </tr>

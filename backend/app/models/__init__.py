@@ -21,6 +21,7 @@ from app.database import Base
 class ProductCategory(str, enum.Enum):
     FRESH = "Fresh"
     FROZEN = "Frozen"
+    BOTH = "Both"
     UNKNOWN = "Unknown"
 
 
@@ -29,6 +30,7 @@ class DocumentSourceType(str, enum.Enum):
     EMAIL = "email"
     CONTACT = "contact"
     INVOICE = "invoice"
+    CRM = "crm"
     MANUAL = "manual"
 
 

@@ -29,11 +29,19 @@ class ParsedMessage:
 
 
 @dataclass
+class ParsedProductInterest:
+    product_name: str
+    form: str | None = None
+    source: str | None = None
+
+
+@dataclass
 class ExtractionOutput:
     source_type: str
     contacts: list[ParsedContact] = field(default_factory=list)
     purchases: list[ParsedPurchase] = field(default_factory=list)
     messages: list[ParsedMessage] = field(default_factory=list)
+    product_interests: list[ParsedProductInterest] = field(default_factory=list)
     company_name: str | None = None
     raw_text: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -60,6 +68,14 @@ class ExtractionOutput:
             "messages": [
                 {"sender": m.sender, "content": m.content, "timestamp": m.timestamp}
                 for m in self.messages
+            ],
+            "product_interests": [
+                {
+                    "product_name": p.product_name,
+                    "form": p.form,
+                    "source": p.source,
+                }
+                for p in self.product_interests
             ],
             "metadata": self.metadata,
             "errors": self.errors,

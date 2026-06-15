@@ -16,7 +16,7 @@ from app.services.import_service import process_upload
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
-ALLOWED_TYPES = {"whatsapp", "contact", "email", "invoice"}
+ALLOWED_TYPES = {"whatsapp", "contact", "email", "invoice", "crm"}
 
 
 @router.post("/", response_model=UploadResponse)
@@ -95,5 +95,6 @@ def supported_types():
             {"id": "contact", "label": "Contacts", "extensions": [".vcf", ".csv"]},
             {"id": "email", "label": "Email", "extensions": [".eml", ".mbox"]},
             {"id": "invoice", "label": "Invoice", "extensions": [".pdf"]},
+            {"id": "crm", "label": "CRM Spreadsheet", "extensions": [".xlsx"]},
         ]
     }

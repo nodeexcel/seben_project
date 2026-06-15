@@ -215,6 +215,7 @@ tr:hover td {
 
 .badge-fresh { background: #dcfce7; color: #166534; }
 .badge-frozen { background: #dbeafe; color: #1e40af; }
+.badge-both { background: #fef3c7; color: #92400e; }
 .badge-unknown { background: #f1f5f9; color: #475569; }
 
 .empty-state {

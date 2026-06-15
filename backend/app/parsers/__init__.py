@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.parsers.contacts import parse_contacts
+from app.parsers.crm_xlsx import parse_crm_xlsx
 from app.parsers.email_parser import parse_email
 from app.parsers.invoice import parse_invoice
 from app.parsers.whatsapp import parse_whatsapp
@@ -12,6 +13,7 @@ PARSERS = {
     "contact": {".vcf", ".csv", ".tsv"},
     "email": {".eml", ".mbox"},
     "invoice": {".pdf"},
+    "crm": {".xlsx", ".xls"},
 }
 
 PARSER_FUNCTIONS = {
@@ -19,6 +21,7 @@ PARSER_FUNCTIONS = {
     "contact": parse_contacts,
     "email": parse_email,
     "invoice": parse_invoice,
+    "crm": parse_crm_xlsx,
 }
 
 

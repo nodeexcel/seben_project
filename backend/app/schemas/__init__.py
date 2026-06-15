@@ -54,6 +54,14 @@ class PurchaseBrief(BaseModel):
     purchase_date: date | None = None
 
 
+class ProductInterestBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_name_raw: str | None = None
+    source: str | None = None
+
+
 class CompanyListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -77,6 +85,7 @@ class CompanyDetail(CompanyBase):
     ai_summary: str | None = None
     contacts: list[ContactBrief] = []
     purchases: list[PurchaseBrief] = []
+    product_interests: list[ProductInterestBrief] = []
     created_at: datetime
     updated_at: datetime
 

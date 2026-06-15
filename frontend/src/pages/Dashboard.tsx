@@ -7,6 +7,12 @@ export default function Dashboard() {
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiStatus, setApiStatus] = useState<'ok' | 'error'>('ok');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState('');
+
+  const load = () => {
+    api.listCompanies().then(setCompanies).catch(() => setCompanies([]));
+  };
 
   useEffect(() => {
     Promise.all([
@@ -14,6 +20,20 @@ export default function Dashboard() {
       api.listCompanies().then(setCompanies).catch(() => setCompanies([])),
     ]).finally(() => setLoading(false));
   }, []);
+
+  const handleImport = async () => {
+    setImporting(true);
+    setImportResult('');
+    try {
+      const res = await api.importSamples();
+      setImportResult(`Imported ${res.processed} files (${res.failed} failed)`);
+      load();
+    } catch (e) {
+      setImportResult(e instanceof Error ? e.message : 'Import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const totalRevenue = companies.reduce((sum, c) => sum + c.total_revenue, 0);
   const totalContacts = companies.reduce((sum, c) => sum + c.contact_count, 0);
@@ -42,7 +62,7 @@ export default function Dashboard() {
         </div>
         <div className="stat-card">
           <div className="label">Total Revenue</div>
-          <div className="value">{loading ? '—' : `$${totalRevenue.toLocaleString()}`}</div>
+          <div className="value">{loading ? '—' : `€${totalRevenue.toLocaleString()}`}</div>
         </div>
         <div className="stat-card">
           <div className="label">API Status</div>
@@ -53,13 +73,18 @@ export default function Dashboard() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>Getting Started — Phase 1</h3>
-        <ol style={{ lineHeight: 1.8, color: '#475569' }}>
-          <li>Place client sample files in the <code>samples/</code> folder</li>
-          <li>Go to <Link to="/upload" className="link">Upload & Extract</Link> to test parsers</li>
-          <li>Review extracted data before importing to the database</li>
-          <li>Once client approves schema, enable persist mode to save to CRM</li>
-        </ol>
+        <h3 style={{ marginTop: 0 }}>Import Client Samples</h3>
+        <p style={{ color: '#64748b' }}>
+          Import all files from the <code>samples/</code> folder into the CRM database.
+        </p>
+        <button className="btn btn-primary" onClick={handleImport} disabled={importing}>
+          {importing ? 'Importing...' : 'Import Samples'}
+        </button>
+        {importResult && (
+          <p style={{ marginTop: '0.75rem', color: importResult.includes('failed') && !importResult.includes('0 failed') ? '#991b1b' : '#166534' }}>
+            {importResult}
+          </p>
+        )}
       </div>
 
       {!loading && companies.length > 0 && (
@@ -80,7 +105,7 @@ export default function Dashboard() {
                   <td><Link to={`/companies/${c.id}`} className="link">{c.name}</Link></td>
                   <td>{c.country || '—'}</td>
                   <td>{c.contact_count}</td>
-                  <td>${c.total_revenue.toLocaleString()}</td>
+                  <td>€{c.total_revenue.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

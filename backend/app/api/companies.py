@@ -4,7 +4,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.models import Company, Contact, Product, Purchase
+from app.models import Company, Contact, Product, ProductCategory, ProductInterest, Purchase
 from app.schemas import (
     CompanyCreate,
     CompanyDetail,
@@ -24,6 +24,7 @@ def list_companies(
     q: str | None = Query(None),
     product: str | None = Query(None),
     country: str | None = Query(None),
+    category: ProductCategory | None = Query(None),
     db: Session = Depends(get_db),
 ):
     query = db.query(Company)
@@ -39,13 +40,17 @@ def list_companies(
         )
     if country:
         query = query.filter(Company.country.ilike(f"%{country}%"))
+    if category:
+        query = query.filter(Company.product_category == category)
     if product:
+        purchase_ids = db.query(Purchase.company_id).filter(
+            Purchase.product_name_raw.ilike(f"%{product}%")
+        )
+        interest_ids = db.query(ProductInterest.company_id).filter(
+            ProductInterest.product_name_raw.ilike(f"%{product}%")
+        )
         query = query.filter(
-            Company.id.in_(
-                db.query(Purchase.company_id).filter(
-                    Purchase.product_name_raw.ilike(f"%{product}%")
-                )
-            )
+            or_(Company.id.in_(purchase_ids), Company.id.in_(interest_ids))
         )
 
     companies = query.order_by(Company.name).all()
@@ -81,7 +86,11 @@ def list_companies(
 def get_company(company_id: int, db: Session = Depends(get_db)):
     company = (
         db.query(Company)
-        .options(joinedload(Company.contacts), joinedload(Company.purchases))
+        .options(
+            joinedload(Company.contacts),
+            joinedload(Company.purchases),
+            joinedload(Company.product_interests),
+        )
         .filter(Company.id == company_id)
         .first()
     )

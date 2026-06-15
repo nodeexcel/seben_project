@@ -37,6 +37,12 @@ export interface PurchaseBrief {
   purchase_date: string | null;
 }
 
+export interface ProductInterestBrief {
+  id: number;
+  product_name_raw: string | null;
+  source: string | null;
+}
+
 export interface CompanyDetail {
   id: number;
   name: string;
@@ -48,6 +54,7 @@ export interface CompanyDetail {
   notes: string | null;
   contacts: ContactBrief[];
   purchases: PurchaseBrief[];
+  product_interests: ProductInterestBrief[];
   created_at: string;
   updated_at: string;
 }
@@ -92,11 +99,12 @@ export interface SupportedType {
 export const api = {
   health: () => request<{ status: string }>('/health'),
 
-  listCompanies: (params?: { q?: string; product?: string; country?: string }) => {
+  listCompanies: (params?: { q?: string; product?: string; country?: string; category?: string }) => {
     const search = new URLSearchParams();
     if (params?.q) search.set('q', params.q);
     if (params?.product) search.set('product', params.product);
     if (params?.country) search.set('country', params.country);
+    if (params?.category) search.set('category', params.category);
     const qs = search.toString();
     return request<CompanyListItem[]>(`/api/companies/${qs ? `?${qs}` : ''}`);
   },
@@ -137,4 +145,10 @@ export const api = {
     const qs = search.toString();
     return request<ProductAnalytics[]>(`/api/analytics/products${qs ? `?${qs}` : ''}`);
   },
+
+  importSamples: () =>
+    request<{ processed: number; failed: number; files: { file: string; status: string }[] }>(
+      '/api/import/samples',
+      { method: 'POST' }
+    ),
 };

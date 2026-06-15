@@ -42,11 +42,23 @@ export default function CompanyDetailPage() {
         </div>
 
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>AI Summary</h3>
-          {company.ai_summary ? (
-            <p>{company.ai_summary}</p>
+          <h3 style={{ marginTop: 0 }}>Product Interests ({company.product_interests?.length ?? 0})</h3>
+          {!company.product_interests?.length ? (
+            <p style={{ color: '#64748b' }}>No product interests detected yet.</p>
           ) : (
-            <p style={{ color: '#64748b' }}>No summary yet. Requires OpenAI API key (Milestone 4).</p>
+            <table>
+              <thead>
+                <tr><th>Product</th><th>Source</th></tr>
+              </thead>
+              <tbody>
+                {company.product_interests.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.product_name_raw || '—'}</td>
+                    <td>{p.source || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
@@ -87,7 +99,7 @@ export default function CompanyDetailPage() {
                 <tr key={p.id}>
                   <td>{p.product_name_raw || '—'}</td>
                   <td>{p.quantity ?? '—'}</td>
-                  <td>{p.revenue != null ? `$${p.revenue.toLocaleString()}` : '—'}</td>
+                  <td>{p.revenue != null ? `€${p.revenue.toLocaleString()}` : '—'}</td>
                   <td>{p.purchase_date || '—'}</td>
                 </tr>
               ))}

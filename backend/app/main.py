@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analytics, companies, upload
+from app.api import analytics, companies, import_api, upload
 from app.config import settings
 from app.database import Base, engine
 from app.models import *  # noqa: F401, F403 — register models with Base
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(companies.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(upload.router, prefix="/api")
+app.include_router(import_api.router, prefix="/api")
 
 
 @app.get("/")
