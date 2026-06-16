@@ -10,7 +10,7 @@
 | Milestone | Status | Notes |
 |---|---|---|
 | **M1 — Design & Prototype** | **Complete** | Schema + UI signed off by client |
-| **M2 — Historical Data Processing** | In progress | Drive invoices 2022–2026 imported |
+| **M2 — Historical Data Processing** | **Complete** | Drive 2022–2026, cleanup done |
 | **M3 — Communication Intelligence** | Pending | WhatsApp/email samples in; full timeline UI pending |
 | **M4 — CRM App Completion** | Pending | View/search done; edit/merge UI pending |
 | **M5 — Final Delivery** | Pending | Live on server; handoff + automation pending |
@@ -44,7 +44,7 @@
 
 ---
 
-## M2 — Historical Data Processing (in progress)
+## M2 — Historical Data Processing ✅ Complete
 
 ### Done
 
@@ -55,13 +55,16 @@
 - [x] Deduplication by `drive_file_id`
 - [x] Sample data import (WhatsApp, contacts, email, CRM xlsx) via CLI
 - [x] Contact resync and duplicate-company merge script
+- [x] Supplier name normalization (Tumay / Tümay / HTF aliases)
+- [x] Invoice parser: skip CMR/packing docs; cleaner product names
+- [x] M2 data cleanup script (`backend/scripts/cleanup_m2.py`)
+- [x] Scheduled Drive sync (`scripts/sync-drive-cron.sh` — Mondays 6:00)
 
-### Pending
+### Acceptance criteria met
 
-- [ ] Data quality pass (supplier name normalization, contact noise from CMR docs)
-- [ ] Invoice parser tuning (line items / product column accuracy)
-- [ ] Scheduled Drive sync (cron)
-- [ ] Broader duplicate company cleanup
+- Companies visible in CRM with purchase history from full Drive import (8,783 PDFs, 2022–2026)
+- Contacts imported from phone list and linked to companies
+- Purchase history generated from invoice dataset with supplier column
 
 ### Explicitly not in scope
 

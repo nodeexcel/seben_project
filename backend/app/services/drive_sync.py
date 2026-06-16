@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import Document
 from app.services.import_service import process_upload
+from app.utils.normalize import normalize_supplier_name
 
 DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 FOLDER_MIME = "application/vnd.google-apps.folder"
@@ -127,7 +128,7 @@ def sync_google_drive(
     stats["suppliers"] = len(supplier_folders)
 
     for supplier_folder in supplier_folders:
-        supplier_name = supplier_folder["name"].strip()
+        supplier_name = normalize_supplier_name(supplier_folder["name"].strip())
         supplier_id = supplier_folder["id"]
         for drive_file in _collect_pdfs_recursive(service, supplier_id):
             file_id = drive_file["id"]

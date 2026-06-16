@@ -41,3 +41,29 @@ def normalize_company_name(name: str | None) -> str | None:
             cleaned = cleaned[: -len(suffix)]
     cleaned = re.sub(r"[^\w\s]", "", cleaned)
     return re.sub(r"\s+", " ", cleaned).strip()
+
+
+SUPPLIER_ALIASES = {
+    "tümay": "Tumay",
+    "tumay balik": "Tumay",
+    "tumay balık": "Tumay",
+    "tumay balikcilik": "Tumay",
+    "oykum": "Öyküm",
+    "öyküm": "Öyküm",
+    "htf": "HTF",
+    "mutlu sofralar": "HTF",
+    "zihni": "Zihni",
+}
+
+
+def normalize_supplier_name(name: str | None) -> str | None:
+    if not name:
+        return None
+    stripped = name.strip()
+    key = stripped.lower().replace("ı", "i")
+    if key in SUPPLIER_ALIASES:
+        return SUPPLIER_ALIASES[key]
+    for alias, canonical in SUPPLIER_ALIASES.items():
+        if key == alias.replace("ı", "i"):
+            return canonical
+    return stripped

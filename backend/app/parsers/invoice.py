@@ -6,25 +6,72 @@ import pdfplumber
 
 from app.parsers.base import ExtractionOutput, ParsedContact, ParsedPurchase, ParsedProductInterest
 from app.services.product_detection import detect_form_in_text, detect_products_in_text, parse_euro_amount
-from app.utils.normalize import normalize_phone
 
 DATE_PATTERN = re.compile(
     r"(?:date|data)\s*[:\s]*(\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}|\w+\s+\d{1,2},?\s+\d{4})",
     re.I,
 )
 EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-PHONE_PATTERN = re.compile(r"\+?\d[\d\s\-().]{5,18}\d")
 EURO_LINE = re.compile(r"([\d.,]+)\s*€")
+HS_CODE_PATTERN = re.compile(r"\b\d{8,10}\b")
+BARCODE_PATTERN = re.compile(r"/\s*\d{10,}.*$")
+TUMay_INV_PATTERN = re.compile(r"^INV[_\s]?\d*\s+(.+?)\.pdf$", re.I)
+TUMay_PKL_PATTERN = re.compile(r"^PKL[_\s]?\d*\s+(.+?)\.pdf$", re.I)
+ZIHNI_INV_PATTERN = re.compile(r"\d+\s+(.+?)\s+INVOICE", re.I)
+MUTLU_INV_PATTERN = re.compile(r"^(MUT20\d+)\.pdf$", re.I)
 COMPANY_PATTERNS = [
     re.compile(r"(?:invoice address|name)\s*:\s*(.+)", re.I),
     re.compile(r"^name\s*:\s*(.+)$", re.I),
     re.compile(r"company name\s+(.+?)(?:\s+date|\s*$)", re.I),
     re.compile(r"^([A-Z][A-Z\s.&]+(?:S\.?P\.?A\.?|SRL|SPA|LTD|LLC|GMBH))\s*$"),
 ]
+SUPPORTING_DOC_KEYWORDS = (
+    "PKL_",
+    "PACKING LIST",
+    "PACKING L",
+    "CMR",
+    "T1",
+    "BEYANNAME",
+    "BEYANI",
+    "AVCILIK",
+    "CHEDP",
+    "GDB",
+    "SAĞLIK",
+    "SAGLIK",
+    "VGB",
+    "IL TARIM",
+    "İL TARIM",
+    "ANNEX",
+    "CREDIT NOTE",
+    "TRANSİT",
+    "TRANSIT",
+    "SERTİFİK",
+    "SERTIFIK",
+)
+
+
+def classify_invoice_document(filename: str) -> str:
+    """Return 'invoice' for commercial invoices, 'supporting' for logistics/customs docs."""
+    upper = filename.upper()
+    if MUTLU_INV_PATTERN.match(filename):
+        return "invoice"
+    if TUMay_INV_PATTERN.match(filename) or ZIHNI_INV_PATTERN.search(upper):
+        return "invoice"
+    if " INVOICE" in upper and "PACKING" not in upper:
+        return "invoice"
+    if any(keyword in upper for keyword in SUPPORTING_DOC_KEYWORDS):
+        return "supporting"
+    if TUMay_PKL_PATTERN.match(filename):
+        return "supporting"
+    return "invoice"
 
 
 def parse_invoice(filepath: str) -> ExtractionOutput:
     output = ExtractionOutput(source_type="invoice")
+    filename = Path(filepath).name
+    doc_role = classify_invoice_document(filename)
+    output.metadata["document_role"] = doc_role
+    output.metadata["filename"] = filename
 
     try:
         text_parts: list[str] = []
@@ -43,16 +90,18 @@ def parse_invoice(filepath: str) -> ExtractionOutput:
 
         full_text = "\n".join(text_parts)
         output.raw_text = full_text[:8000]
-        output.metadata["filename"] = Path(filepath).name
         output.metadata["char_count"] = len(full_text)
 
-        output.company_name = _extract_buyer_company(full_text)
-        output.contacts.extend(_extract_contacts(full_text))
-        output.purchases.extend(_extract_line_items(full_text))
-        output.product_interests.extend(_extract_product_interests(full_text))
+        output.company_name = _extract_buyer_company(full_text, filename)
 
-        if not output.purchases:
-            output.purchases.extend(_extract_summary_purchase(full_text))
+        if doc_role == "invoice":
+            output.contacts.extend(_extract_contacts(full_text))
+            output.purchases.extend(_extract_line_items(full_text))
+            output.product_interests.extend(_extract_product_interests(full_text))
+            if not output.purchases:
+                output.purchases.extend(_extract_summary_purchase(full_text))
+        else:
+            output.metadata["skipped"] = "supporting_document"
 
         forms = detect_form_in_text(full_text)
         output.metadata["forms_detected"] = list(forms)
@@ -63,13 +112,31 @@ def parse_invoice(filepath: str) -> ExtractionOutput:
     return output
 
 
-def _extract_buyer_company(text: str) -> str | None:
+def _extract_company_from_filename(filename: str) -> str | None:
+    for pattern in (TUMay_INV_PATTERN, TUMay_PKL_PATTERN):
+        match = pattern.match(filename)
+        if match:
+            return _clean_company_name(match.group(1))
+    match = ZIHNI_INV_PATTERN.search(filename)
+    if match:
+        return _clean_company_name(match.group(1))
+    match = MUTLU_INV_PATTERN.match(filename)
+    if match:
+        return "Mutlu Sofralar"
+    return None
+
+
+def _extract_buyer_company(text: str, filename: str) -> str | None:
     for pattern in COMPANY_PATTERNS:
         match = pattern.search(text)
         if match:
             name = match.group(1).strip()
             if len(name) > 2 and "invoice" not in name.lower():
                 return _clean_company_name(name)
+
+    from_filename = _extract_company_from_filename(filename)
+    if from_filename:
+        return from_filename
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     skip = {"commercial invoice", "invoice", "description", "total", "bank", "producer"}
@@ -84,18 +151,31 @@ def _extract_buyer_company(text: str) -> str | None:
 
 def _clean_company_name(name: str) -> str:
     name = re.sub(r"^(name|address)\s*:\s*", "", name, flags=re.I).strip()
+    name = re.sub(r"\s*\.pdf$", "", name, flags=re.I)
     return name[:255]
 
 
 def _extract_contacts(text: str) -> list[ParsedContact]:
     contacts: list[ParsedContact] = []
     for email_addr in set(EMAIL_PATTERN.findall(text)):
-        contacts.append(ParsedContact(name=email_addr.split("@")[0], email=email_addr))
-    for phone in set(PHONE_PATTERN.findall(text)[:5]):
-        norm_phone = normalize_phone(phone.strip())
-        if norm_phone:
-            contacts.append(ParsedContact(name="Unknown", phone=norm_phone))
+        local = email_addr.split("@")[0]
+        if local and local.lower() not in {"info", "admin", "noreply"}:
+            contacts.append(ParsedContact(name=local, email=email_addr))
     return contacts
+
+
+def _clean_product_name(raw: str) -> str:
+    name = BARCODE_PATTERN.sub("", raw)
+    name = HS_CODE_PATTERN.sub("", name)
+    name = re.sub(r"^\d+\s+", "", name)
+    name = re.sub(
+        r"\s+\d{1,4}(?:[.,]\d+)?(?:\s+\d{1,4}(?:[.,]\d+)?){1,3}\s*(?:KG|K)?\s*$",
+        "",
+        name,
+        flags=re.I,
+    )
+    name = re.sub(r"\s+", " ", name).strip(" -/")
+    return name[:255]
 
 
 def _extract_line_items(text: str) -> list[ParsedPurchase]:
@@ -108,9 +188,45 @@ def _extract_line_items(text: str) -> list[ParsedPurchase]:
         if not stripped or len(stripped) < 10:
             continue
         upper = stripped.upper()
-        if not any(kw in upper for kw in ("FROZEN", "FRESH", "KG", "BOX", "PRAWN", "TROUT", "URCHIN", "ATHERINA", "OMBRI", "ORATA", "BRANZ", "VONGOL")):
+        if not any(
+            kw in upper
+            for kw in (
+                "FROZEN",
+                "FRESH",
+                "KG",
+                "BOX",
+                "PRAWN",
+                "TROUT",
+                "URCHIN",
+                "ATHERINA",
+                "OMBRI",
+                "ORATA",
+                "BRANZ",
+                "VONGOL",
+                "SEABASS",
+                "SEABREAM",
+                "MACKEREL",
+                "CUTTLEFISH",
+                "SHRIMP",
+                "SALMON",
+                "BASS",
+                "BREAM",
+            )
+        ):
             continue
-        if any(skip in upper for skip in ("TOTAL BOXES", "TOTAL PALLETS", "NET WEIGHT", "GROSS WEIGHT", "DESCRIPTION OF GOODS", "COMMERCIAL INVOICE")):
+        if any(
+            skip in upper
+            for skip in (
+                "TOTAL BOXES",
+                "TOTAL PALLETS",
+                "NET WEIGHT",
+                "GROSS WEIGHT",
+                "DESCRIPTION OF GOODS",
+                "COMMERCIAL INVOICE",
+                "SUBTOTAL",
+                "GRAND TOTAL",
+            )
+        ):
             continue
 
         euros = EURO_LINE.findall(stripped)
@@ -122,8 +238,10 @@ def _extract_line_items(text: str) -> list[ParsedPurchase]:
         product_name = stripped
         for euro in euros:
             product_name = product_name.replace(f"{euro} €", "").replace(f"€ {euro}", "")
-        product_name = re.sub(r"\s+", " ", product_name).strip()[:255]
+        product_name = _clean_product_name(product_name)
 
+        if len(product_name) < 4:
+            continue
         if product_name and (revenue or quantity):
             purchases.append(
                 ParsedPurchase(

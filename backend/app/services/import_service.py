@@ -19,6 +19,7 @@ from app.models import (
 from app.parsers import parse_file
 from app.services.linking import find_company_by_contact_name, find_or_create_company, find_or_create_contact
 from app.services.product_detection import classify_company_form, detect_form_in_text
+from app.utils.normalize import normalize_supplier_name
 
 
 def process_upload(
@@ -31,6 +32,7 @@ def process_upload(
     drive_file_id: str | None = None,
     invoice_year: str | None = None,
 ) -> Document:
+    supplier_name = normalize_supplier_name(supplier_name)
     doc = Document(
         source_type=DocumentSourceType(source_type),
         filename=filename,
@@ -119,6 +121,12 @@ def _persist_extraction(
         companies_touched.append(company)
 
     for parsed_contact in result.contacts:
+        if (
+            source_type == "invoice"
+            and parsed_contact.name.strip().lower() == "unknown"
+            and not parsed_contact.email
+        ):
+            continue
         contact_company = company
         if parsed_contact.company_name:
             contact_company = find_or_create_company(db, parsed_contact.company_name)

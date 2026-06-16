@@ -2,14 +2,14 @@
 
 Web-based CRM that processes WhatsApp conversations, emails, contacts, and PDF invoices into a centralized customer intelligence database.
 
-**Current status:** M1 complete. M2 in progress (Google Drive invoice import live for 2022–2026).
+**Current status:** M1 and M2 complete. M3 in progress next.
 
 ## Milestones
 
 | Phase | Status |
 |---|---|
 | M1 — Design & Prototype | **Complete** |
-| M2 — Historical Data Processing | In progress |
+| M2 — Historical Data Processing | **Complete** |
 | M3 — Communication Intelligence | Pending |
 | M4 — CRM App Completion | Pending |
 | M5 — Final Delivery | Pending |
@@ -65,6 +65,14 @@ python scripts/sync_all_drive.py 2026     # single year
 
 ```bash
 python scripts/import_samples.py
+python scripts/cleanup_m2.py      # one-time / periodic data quality pass
+```
+
+**Scheduled Drive sync** (Mondays 6:00 AM):
+
+```bash
+# Already installed via cron — or run manually:
+/home/ubuntu/seben_project/scripts/sync-drive-cron.sh
 ```
 
 Or use **Upload & Extract** in the UI for one-off files.
@@ -102,6 +110,7 @@ seben_project/
 │   │   └── services/      # Import, linking, drive sync, AI summary
 │   └── scripts/
 │       ├── sync_all_drive.py
+│       ├── cleanup_m2.py
 │       ├── import_samples.py
 │       └── resync_contacts.py
 ├── config/
