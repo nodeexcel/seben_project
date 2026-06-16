@@ -4,6 +4,8 @@
 
 Seben CRM is a self-hosted customer intelligence platform that ingests multi-source business data, links records to unified company profiles, and exposes search, analytics, and manual editing through a web interface.
 
+**M1 (Design & Prototype) is complete.** Schema and UI are client-approved. See `milestones.md` for current phase status.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        React Frontend                           │
@@ -13,8 +15,8 @@ Seben CRM is a self-hosted customer intelligence platform that ingests multi-sou
 ┌──────────────────────────▼──────────────────────────────────────┐
 │                      FastAPI Backend                            │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────────┐ │
-│  │ Parsers  │  │ Linking  │  │ Import   │  │ AI Summary      │ │
-│  │ Layer    │  │ Service  │  │ Service  │  │ (OpenAI)        │ │
+│  │ Parsers  │  │ Linking  │  │ Import   │  │ Drive Sync      │ │
+│  │ Layer    │  │ Service  │  │ Service  │  │ (Google Drive)  │ │
 │  └──────────┘  └──────────┘  └──────────┘  └─────────────────┘ │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ SQLAlchemy ORM
@@ -26,17 +28,27 @@ Seben CRM is a self-hosted customer intelligence platform that ingests multi-sou
 
 ## Data Flow
 
-### 1. Upload & Extract (Phase 1 — Current)
+### 1. Upload & Extract
 
 ```
-User uploads file
-    → API detects source type (.txt, .pdf, .vcf, .eml, etc.)
+User uploads file (or CLI / Drive sync)
+    → API detects source type (.txt, .pdf, .vcf, .eml, .xlsx)
     → Parser extracts structured data
-    → Preview returned to UI (JSON)
-    → [Optional] Persist mode saves to database
+    → Preview returned to UI (JSON) OR persisted to database
 ```
 
-### 2. Entity Linking (Milestone 2–3)
+### 2. Google Drive Invoice Sync (M2 — primary invoice source)
+
+```
+sync_all_drive.py reads config/drive_folders.json
+    → Service account lists year folder → supplier subfolders
+    → Recursively collects PDFs (month/shipment nested folders)
+    → Downloads to uploads/drive/{year}/
+    → Invoice parser + linking pipeline
+    → supplier_name from folder name; dedup by drive_file_id
+```
+
+### 3. Entity Linking
 
 ```
 Extracted contact/company
@@ -47,13 +59,13 @@ Extracted contact/company
     → Attach purchases, interactions, product interests
 ```
 
-### 3. CRM Queries (Milestone 4)
+### 4. CRM Queries (M4)
 
 ```
 User searches/filters
     → API queries PostgreSQL with joins
     → Returns company profiles, analytics, timelines
-    → Manual edits update records directly
+    → Manual edits update records directly (UI in progress)
 ```
 
 ## Parser Layer
@@ -64,10 +76,11 @@ User searches/filters
 | Contacts | `.vcf`, `.csv` | `parsers/contacts.py` | Name, email, phone, organization |
 | Email | `.eml`, `.mbox` | `parsers/email_parser.py` | Sender, subject, body, date |
 | Invoice | `.pdf` | `parsers/invoice.py` | Company, contacts, line items, totals |
+| CRM | `.xlsx` | `parsers/crm_xlsx.py` | Companies, contacts, interests |
 
-Parsers return a unified `ExtractionOutput` dataclass regardless of source type. This allows the import service to process any source through the same pipeline.
+Parsers return a unified `ExtractionOutput` dataclass regardless of source type.
 
-**Note:** Invoice parser uses text extraction (`pdfplumber`). Scanned/image PDFs require OCR (planned for Milestone 2 if client data requires it).
+**PDF invoices:** Text extraction via `pdfplumber`. **OCR is not in scope** — the client will obtain text-based PDFs from producers for any scanned documents. Image-only PDFs are skipped with a warning.
 
 ## Matching Strategy
 
@@ -84,50 +97,44 @@ See `schema.md` for full field definitions. Core entities:
 - **companies** — Central customer profile
 - **contacts** — People linked to companies
 - **products** — Product catalog (Fresh/Frozen categories)
-- **purchases** — Transaction records from invoices
+- **purchases** — Transaction records from invoices (includes `supplier_name`)
 - **product_interests** — Products mentioned in communications
 - **interactions** — WhatsApp messages, emails, manual notes
-- **documents** — Source file tracking and extraction audit trail
+- **documents** — Source file tracking (`drive_file_id`, `invoice_year`, `supplier_name`)
 
 ## API Design
 
 RESTful JSON API served by FastAPI with auto-generated OpenAPI docs at `/docs`.
 
-Authentication is not implemented in Phase 1. Will be added before production handoff if required by client.
+No login or authentication layer — not required by the client for this project.
 
 ## Deployment
 
-Docker Compose with three services:
+**Development:** Docker Compose (postgres, backend, frontend).
 
-| Service | Image | Port |
-|---|---|---|
-| `db` | postgres:16-alpine | 5432 |
-| `backend` | Custom Python 3.12 | 8000 |
-| `frontend` | Custom Node 20 | 5173 |
+**Production (current):** AWS EC2 — PostgreSQL, uvicorn backend, pm2 frontend. Google Drive credentials in `secrets/` (gitignored).
 
-Client self-hosts on any machine with Docker installed. No cloud dependency except optional OpenAI API for summaries.
-
-## Future Upload Workflow (Milestone 5)
-
-```
-User drops new files in Upload UI
-    → Files stored in uploads/
-    → Parser + linking pipeline runs
-    → New records merged into existing profiles
-    → Document audit trail maintained
-```
-
-## Phase 1 Deliverables Checklist
+## M1 Deliverables Checklist ✅
 
 - [x] System architecture document
 - [x] Database schema design
 - [x] CRM field definitions
-- [x] Parser stubs for all 4 data sources
+- [x] Full parsers for all data sources (not stubs)
 - [x] Sample extraction via Upload UI
 - [x] Docker Compose development environment
-- [ ] Client sample data analysis (waiting on client)
-- [ ] Schema approval from client
-- [ ] Prototype demo with real sample files
+- [x] Client sample data analysis
+- [x] Schema approval from client
+- [x] Prototype demo with real data
+- [x] UI/UX approval from client
+
+## Client Scope Decisions
+
+| Topic | Decision |
+|---|---|
+| Invoice ingestion | Google Drive folders (not Gmail) |
+| Scanned PDFs | No OCR — client requests text-based PDFs from producers |
+| Authentication | Not in scope |
+| UI | Approved as built |
 
 ## Technology Choices
 
@@ -136,7 +143,8 @@ User drops new files in Upload UI
 | FastAPI | Fast to build, great for file uploads, auto API docs |
 | PostgreSQL | Relational data with complex joins for analytics |
 | React + Vite | Lightweight SPA, fast dev experience |
-| pdfplumber | Reliable text extraction from PDF invoices |
+| pdfplumber | Reliable text extraction from text-based PDF invoices |
+| Google Drive API | Client’s existing invoice archive; supplier = subfolder name |
 | rapidfuzz | Fast fuzzy string matching for company names |
 | phonenumbers | International phone normalization (E.164) |
 | Docker Compose | Simple self-hosted deployment for client |

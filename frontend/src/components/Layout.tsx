@@ -32,7 +32,7 @@ export default function Layout() {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <span className="phase-badge">Phase 1 Prototype</span>
+          <span className="phase-badge">M1 Complete</span>
         </div>
       </aside>
       <main className="main-content">

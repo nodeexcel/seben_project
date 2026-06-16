@@ -37,7 +37,7 @@ def parse_invoice(filepath: str) -> ExtractionOutput:
 
         if not text_parts:
             output.errors.append(
-                "No text extracted — PDF may be scanned/image-based (OCR not yet implemented)"
+                "No text extracted — PDF may be scanned/image-based (request a text-based PDF from the producer)"
             )
             return output
 

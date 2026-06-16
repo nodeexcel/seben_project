@@ -22,7 +22,7 @@ export default function Dashboard() {
     <div>
       <div className="page-header">
         <h1>Dashboard</h1>
-        <p>Customer intelligence overview — Phase 1 prototype</p>
+        <p>Customer intelligence overview</p>
       </div>
 
       {apiStatus === 'error' && (
