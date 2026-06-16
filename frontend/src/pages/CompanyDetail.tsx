@@ -92,7 +92,7 @@ export default function CompanyDetailPage() {
         ) : (
           <table>
             <thead>
-              <tr><th>Product</th><th>Qty</th><th>Revenue</th><th>Date</th></tr>
+              <tr><th>Product</th><th>Qty</th><th>Revenue</th><th>Supplier</th><th>Date</th></tr>
             </thead>
             <tbody>
               {company.purchases.map((p) => (
@@ -100,6 +100,7 @@ export default function CompanyDetailPage() {
                   <td>{p.product_name_raw || '—'}</td>
                   <td>{p.quantity ?? '—'}</td>
                   <td>{p.revenue != null ? `€${p.revenue.toLocaleString()}` : '—'}</td>
+                  <td>{p.supplier_name || '—'}</td>
                   <td>{p.purchase_date || '—'}</td>
                 </tr>
               ))}

@@ -52,6 +52,7 @@ class PurchaseBrief(BaseModel):
     revenue: float | None = None
     currency: str | None = None
     purchase_date: date | None = None
+    supplier_name: str | None = None
 
 
 class ProductInterestBrief(BaseModel):

@@ -1,6 +1,9 @@
 # Environment
 .env
 .env.local
+secrets/
+service_Account.json
+**/google-drive*.json
 
 # Python
 __pycache__/

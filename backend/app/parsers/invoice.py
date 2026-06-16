@@ -6,13 +6,14 @@ import pdfplumber
 
 from app.parsers.base import ExtractionOutput, ParsedContact, ParsedPurchase, ParsedProductInterest
 from app.services.product_detection import detect_form_in_text, detect_products_in_text, parse_euro_amount
+from app.utils.normalize import normalize_phone
 
 DATE_PATTERN = re.compile(
     r"(?:date|data)\s*[:\s]*(\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}|\w+\s+\d{1,2},?\s+\d{4})",
     re.I,
 )
 EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-PHONE_PATTERN = re.compile(r"\+?\d[\d\s\-().]{7,}\d")
+PHONE_PATTERN = re.compile(r"\+?\d[\d\s\-().]{5,18}\d")
 EURO_LINE = re.compile(r"([\d.,]+)\s*€")
 COMPANY_PATTERNS = [
     re.compile(r"(?:invoice address|name)\s*:\s*(.+)", re.I),
@@ -91,7 +92,9 @@ def _extract_contacts(text: str) -> list[ParsedContact]:
     for email_addr in set(EMAIL_PATTERN.findall(text)):
         contacts.append(ParsedContact(name=email_addr.split("@")[0], email=email_addr))
     for phone in set(PHONE_PATTERN.findall(text)[:5]):
-        contacts.append(ParsedContact(name="Unknown", phone=phone.strip()))
+        norm_phone = normalize_phone(phone.strip())
+        if norm_phone:
+            contacts.append(ParsedContact(name="Unknown", phone=norm_phone))
     return contacts
 
 

@@ -35,6 +35,7 @@ export interface PurchaseBrief {
   revenue: number | null;
   currency: string | null;
   purchase_date: string | null;
+  supplier_name: string | null;
 }
 
 export interface ProductInterestBrief {

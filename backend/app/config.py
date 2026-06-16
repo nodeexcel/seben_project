@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     upload_dir: str = "./uploads"
     max_upload_size_mb: int = 50
+    google_drive_folder_id: str = ""
+    google_drive_credentials_json: str = ""
+    google_drive_invoice_year: str = ""
+
+    @property
+    def drive_enabled(self) -> bool:
+        return bool(self.google_drive_folder_id and self.google_drive_credentials_json)
 
     @property
     def cors_origin_list(self) -> list[str]:

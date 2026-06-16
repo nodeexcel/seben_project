@@ -106,6 +106,7 @@ class Purchase(Base):
     revenue: Mapped[Optional[float]] = mapped_column(Float)
     currency: Mapped[Optional[str]] = mapped_column(String(10), default="USD")
     purchase_date: Mapped[Optional[date]] = mapped_column(Date, index=True)
+    supplier_name: Mapped[Optional[str]] = mapped_column(String(255), index=True)
     document_id: Mapped[Optional[int]] = mapped_column(ForeignKey("documents.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -154,6 +155,9 @@ class Document(Base):
     source_type: Mapped[DocumentSourceType] = mapped_column(Enum(DocumentSourceType), nullable=False)
     filename: Mapped[str] = mapped_column(String(500), nullable=False)
     filepath: Mapped[str] = mapped_column(String(1000), nullable=False)
+    supplier_name: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    invoice_year: Mapped[Optional[str]] = mapped_column(String(10), index=True)
+    drive_file_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True)
     status: Mapped[str] = mapped_column(String(50), default="pending")
     extracted_data: Mapped[Optional[str]] = mapped_column(Text)
     error_message: Mapped[Optional[str]] = mapped_column(Text)

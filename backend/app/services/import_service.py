@@ -21,11 +21,23 @@ from app.services.linking import find_company_by_contact_name, find_or_create_co
 from app.services.product_detection import classify_company_form, detect_form_in_text
 
 
-def process_upload(db: Session, filepath: str, filename: str, source_type: str) -> Document:
+def process_upload(
+    db: Session,
+    filepath: str,
+    filename: str,
+    source_type: str,
+    *,
+    supplier_name: str | None = None,
+    drive_file_id: str | None = None,
+    invoice_year: str | None = None,
+) -> Document:
     doc = Document(
         source_type=DocumentSourceType(source_type),
         filename=filename,
         filepath=filepath,
+        supplier_name=supplier_name,
+        invoice_year=invoice_year,
+        drive_file_id=drive_file_id,
         status="processing",
     )
     db.add(doc)
@@ -37,12 +49,22 @@ def process_upload(db: Session, filepath: str, filename: str, source_type: str) 
         doc.status = "completed" if not result.errors else "completed_with_warnings"
         doc.processed_at = datetime.utcnow()
 
-        _persist_extraction(db, result, doc.id, source_type)
+        _persist_extraction(db, result, doc.id, source_type, supplier_name=supplier_name)
 
     except Exception as exc:
-        doc.status = "failed"
-        doc.error_message = str(exc)
-        doc.processed_at = datetime.utcnow()
+        db.rollback()
+        doc = Document(
+            source_type=DocumentSourceType(source_type),
+            filename=filename,
+            filepath=filepath,
+            supplier_name=supplier_name,
+            invoice_year=invoice_year,
+            drive_file_id=drive_file_id,
+            status="failed",
+            error_message=str(exc),
+            processed_at=datetime.utcnow(),
+        )
+        db.add(doc)
 
     db.commit()
     db.refresh(doc)
@@ -77,7 +99,14 @@ def import_directory(db: Session, directory: str) -> dict:
     return stats
 
 
-def _persist_extraction(db: Session, result, document_id: int, source_type: str) -> None:
+def _persist_extraction(
+    db: Session,
+    result,
+    document_id: int,
+    source_type: str,
+    *,
+    supplier_name: str | None = None,
+) -> None:
     companies_touched: list[Company] = []
     form_signals: set[str] = set()
 
@@ -122,6 +151,7 @@ def _persist_extraction(db: Session, result, document_id: int, source_type: str)
             revenue=purchase_data.revenue,
             currency=purchase_data.currency or "EUR",
             purchase_date=_parse_date(purchase_data.purchase_date),
+            supplier_name=supplier_name,
             document_id=document_id,
         )
         db.add(purchase)
