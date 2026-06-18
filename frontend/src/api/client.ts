@@ -1,10 +1,18 @@
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+function formatErrorDetail(detail: unknown): string {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((item) => (typeof item === 'object' && item && 'msg' in item ? String(item.msg) : String(item))).join(', ');
+  }
+  return 'Request failed';
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, options);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'Request failed');
+    throw new Error(formatErrorDetail(err.detail));
   }
   return res.json();
 }
@@ -44,6 +52,23 @@ export interface ProductInterestBrief {
   source: string | null;
 }
 
+export interface InteractionBrief {
+  id: number;
+  interaction_type: string;
+  subject: string | null;
+  content: string | null;
+  interaction_date: string | null;
+  sender: string | null;
+}
+
+export interface MergeCandidate {
+  id: number;
+  name: string;
+  score: number;
+  contact_count: number;
+  purchase_count: number;
+}
+
 export interface CompanyDetail {
   id: number;
   name: string;
@@ -55,6 +80,7 @@ export interface CompanyDetail {
   notes: string | null;
   contacts: ContactBrief[];
   purchases: PurchaseBrief[];
+  purchase_count: number;
   product_interests: ProductInterestBrief[];
   created_at: string;
   updated_at: string;
@@ -111,6 +137,57 @@ export const api = {
   },
 
   getCompany: (id: number) => request<CompanyDetail>(`/api/companies/${id}`),
+
+  updateCompany: (
+    id: number,
+    data: {
+      notes?: string | null;
+      country?: string | null;
+      name?: string;
+      product_category?: string;
+    },
+  ) =>
+    request<CompanyDetail>(`/api/companies/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+
+  getInteractions: (companyId: number, limit = 100) =>
+    request<InteractionBrief[]>(`/api/companies/${companyId}/interactions?limit=${limit}`),
+
+  getMergeCandidates: (companyId: number) =>
+    request<MergeCandidate[]>(`/api/companies/${companyId}/merge-candidates`),
+
+  mergeCompany: (companyId: number, duplicateCompanyId: number) =>
+    request<CompanyDetail>(`/api/companies/${companyId}/merge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ duplicate_company_id: duplicateCompanyId }),
+    }),
+
+  addContact: (companyId: number, data: { name: string; email?: string; phone?: string }) =>
+    request<CompanyDetail>(`/api/companies/${companyId}/contacts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+
+  updateContact: (
+    companyId: number,
+    contactId: number,
+    data: { name?: string; email?: string | null; phone?: string | null },
+  ) =>
+    request<CompanyDetail>(`/api/companies/${companyId}/contacts/${contactId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+
+  deleteContact: (companyId: number, contactId: number) =>
+    request<CompanyDetail>(`/api/companies/${companyId}/contacts/${contactId}`, {
+      method: 'DELETE',
+    }),
 
   createCompany: (data: { name: string; country?: string; notes?: string }) =>
     request<CompanyDetail>('/api/companies/', {

@@ -2,7 +2,7 @@
 
 Web-based CRM that processes WhatsApp conversations, emails, contacts, and PDF invoices into a centralized customer intelligence database.
 
-**Current status:** M1 and M2 complete. M3 in progress next.
+**Current status:** M1–M4 complete. M5 (handoff) remaining.
 
 ## Milestones
 
@@ -10,8 +10,8 @@ Web-based CRM that processes WhatsApp conversations, emails, contacts, and PDF i
 |---|---|
 | M1 — Design & Prototype | **Complete** |
 | M2 — Historical Data Processing | **Complete** |
-| M3 — Communication Intelligence | Pending |
-| M4 — CRM App Completion | Pending |
+| M3 — Communication Intelligence | In progress |
+| M4 — CRM Application Completion | **Complete** |
 | M5 — Final Delivery | Pending |
 
 See `docs/milestones.md` for full detail, client sign-off, and scope decisions.

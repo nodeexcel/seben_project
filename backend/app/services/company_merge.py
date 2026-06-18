@@ -44,8 +44,49 @@ def merge_company_into(db: Session, source_id: int, target_id: int) -> None:
             contact.company_id = target_id
 
     source = db.query(Company).filter(Company.id == source_id).first()
+    survivor = db.query(Company).filter(Company.id == target_id).first()
+    if source and survivor and source.notes and not survivor.notes:
+        survivor.notes = source.notes
+
     if source:
         db.delete(source)
+
+
+def find_merge_candidates(
+    db: Session,
+    company_id: int,
+    *,
+    threshold: float = 85.0,
+    limit: int = 10,
+) -> list[dict]:
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        return []
+
+    purchase_counts = dict(
+        db.query(Purchase.company_id, func.count(Purchase.id)).group_by(Purchase.company_id).all()
+    )
+    contact_counts = dict(
+        db.query(Contact.company_id, func.count(Contact.id)).group_by(Contact.company_id).all()
+    )
+
+    candidates: list[dict] = []
+    for other in db.query(Company).filter(Company.id != company_id).all():
+        score = company_match_score(company.name, other.name)
+        if score < threshold:
+            continue
+        candidates.append(
+            {
+                "id": other.id,
+                "name": other.name,
+                "score": round(score, 1),
+                "contact_count": contact_counts.get(other.id, 0),
+                "purchase_count": purchase_counts.get(other.id, 0),
+            }
+        )
+
+    candidates.sort(key=lambda item: item["score"], reverse=True)
+    return candidates[:limit]
 
 
 def merge_fuzzy_duplicate_companies(db: Session, threshold: float = COMPANY_MATCH_THRESHOLD) -> int:

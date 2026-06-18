@@ -12,7 +12,7 @@
 | **M1 — Design & Prototype** | **Complete** | Schema + UI signed off by client |
 | **M2 — Historical Data Processing** | **Complete** | Drive 2022–2026, cleanup done |
 | **M3 — Communication Intelligence** | Pending | WhatsApp/email samples in; full timeline UI pending |
-| **M4 — CRM App Completion** | Pending | View/search done; edit/merge UI pending |
+| **M4 — CRM Application Completion** | **Complete** | Search, edit, merge, timeline |
 | **M5 — Final Delivery** | Pending | Live on server; handoff + automation pending |
 
 ---
@@ -82,13 +82,16 @@
 
 ### Pending
 
-- [ ] Communication timeline on company profile (UI)
 - [ ] Full historical WhatsApp/email import (if client provides exports)
 - [ ] Optional AI customer summaries (OpenAI — not started)
 
+### Done in UI (via M4)
+
+- [x] Communication timeline on company profile
+
 ---
 
-## M4 — CRM App Completion (pending)
+## M4 — CRM Application Completion ✅ Complete
 
 ### Done
 
@@ -96,13 +99,16 @@
 - [x] Company profile (contacts, purchases with supplier, product interests)
 - [x] Purchase analytics (by customer and product)
 - [x] Backend APIs for create/update company and add contact/purchase
+- [x] Edit company notes, country, and category in UI
+- [x] Add, edit, and delete contacts in UI
+- [x] Manual merge of duplicate companies
+- [x] Communication timeline (WhatsApp / email) on company profile
 
-### Pending
+### Acceptance criteria met
 
-- [ ] Edit and delete contacts in UI
-- [ ] Edit company notes and profile fields in UI
-- [ ] Manual merge of duplicate companies
-- [ ] Interaction timeline in UI
+- User can query and view customer information through the application
+- User can manually correct profile data and contacts
+- User can merge duplicate company records
 
 ---
 

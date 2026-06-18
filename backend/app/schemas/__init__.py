@@ -86,9 +86,22 @@ class CompanyDetail(CompanyBase):
     ai_summary: str | None = None
     contacts: list[ContactBrief] = []
     purchases: list[PurchaseBrief] = []
+    purchase_count: int = 0
     product_interests: list[ProductInterestBrief] = []
     created_at: datetime
     updated_at: datetime
+
+
+class MergeCandidate(BaseModel):
+    id: int
+    name: str
+    score: float
+    contact_count: int = 0
+    purchase_count: int = 0
+
+
+class CompanyMergeRequest(BaseModel):
+    duplicate_company_id: int
 
 
 # --- Contact ---
@@ -96,6 +109,12 @@ class CompanyDetail(CompanyBase):
 class ContactCreate(BaseModel):
     company_id: int | None = None
     name: str
+    email: str | None = None
+    phone: str | None = None
+
+
+class ContactUpdate(BaseModel):
+    name: str | None = None
     email: str | None = None
     phone: str | None = None
 
