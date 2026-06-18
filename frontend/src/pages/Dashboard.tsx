@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import type { CompanyListItem } from '../api/client';
+import type { CompanyListItem, CustomerAnalytics } from '../api/client';
+
+const REVENUE_YEARS = ['2026', '2025', '2024', '2023', '2022'];
 
 export default function Dashboard() {
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
+  const [yearAnalytics, setYearAnalytics] = useState<CustomerAnalytics[]>([]);
+  const [revenueYear, setRevenueYear] = useState(String(new Date().getFullYear()));
   const [loading, setLoading] = useState(true);
   const [apiStatus, setApiStatus] = useState<'ok' | 'error'>('ok');
 
@@ -15,7 +19,18 @@ export default function Dashboard() {
     ]).finally(() => setLoading(false));
   }, []);
 
-  const totalRevenue = companies.reduce((sum, c) => sum + c.total_revenue, 0);
+  useEffect(() => {
+    api
+      .customerAnalytics({
+        date_from: `${revenueYear}-01-01`,
+        date_to: `${revenueYear}-12-31`,
+      })
+      .then(setYearAnalytics)
+      .catch(() => setYearAnalytics([]));
+  }, [revenueYear]);
+
+  const totalRevenue = yearAnalytics.reduce((sum, row) => sum + row.total_revenue, 0);
+  const revenueByCompany = new Map(yearAnalytics.map((row) => [row.company_id, row.total_revenue]));
   const totalContacts = companies.reduce((sum, c) => sum + c.contact_count, 0);
 
   return (
@@ -41,7 +56,19 @@ export default function Dashboard() {
           <div className="value">{loading ? '—' : totalContacts}</div>
         </div>
         <div className="stat-card">
-          <div className="label">Total Revenue</div>
+          <div className="label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+            <span>Revenue ({revenueYear})</span>
+            <select
+              value={revenueYear}
+              onChange={(e) => setRevenueYear(e.target.value)}
+              aria-label="Revenue year"
+              style={{ fontSize: '0.75rem', padding: '0.15rem 0.35rem' }}
+            >
+              {REVENUE_YEARS.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
           <div className="value">{loading ? '—' : `€${totalRevenue.toLocaleString()}`}</div>
         </div>
         <div className="stat-card">
@@ -61,7 +88,7 @@ export default function Dashboard() {
                 <th>Company</th>
                 <th>Country</th>
                 <th>Contacts</th>
-                <th>Revenue</th>
+                <th>Revenue ({revenueYear})</th>
               </tr>
             </thead>
             <tbody>
@@ -70,7 +97,7 @@ export default function Dashboard() {
                   <td><Link to={`/companies/${c.id}`} className="link">{c.name}</Link></td>
                   <td>{c.country || '—'}</td>
                   <td>{c.contact_count}</td>
-                  <td>€{c.total_revenue.toLocaleString()}</td>
+                  <td>€{(revenueByCompany.get(c.id) ?? 0).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

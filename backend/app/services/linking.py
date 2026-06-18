@@ -6,6 +6,36 @@ from app.utils.matching import company_match_score, contact_name_match_score
 from app.utils.normalize import normalize_company_name, normalize_email, normalize_phone
 
 NAME_MATCH_THRESHOLD = 90.0
+COMPANY_MATCH_THRESHOLD = 85.0
+
+
+def find_company_by_name(db: Session, name: str, threshold: float = COMPANY_MATCH_THRESHOLD) -> Company | None:
+    best_company: Company | None = None
+    best_score = 0.0
+    for company in db.query(Company).all():
+        score = company_match_score(company.name, name)
+        if score >= threshold and score > best_score:
+            best_score = score
+            best_company = company
+    return best_company
+
+
+def resolve_company(db: Session, name: str, *, source_type: str | None = None) -> Company:
+    """Match an extracted name to an existing company, or create one."""
+    cleaned = name.strip()
+    if not cleaned:
+        raise ValueError("Company name is required")
+
+    if source_type == "whatsapp":
+        by_contact = find_company_by_contact_name(db, cleaned)
+        if by_contact:
+            return by_contact
+
+    by_name = find_company_by_name(db, cleaned)
+    if by_name:
+        return by_name
+
+    return find_or_create_company(db, cleaned)
 
 
 def find_company_by_contact_name(db: Session, name: str) -> Company | None:

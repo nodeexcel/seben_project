@@ -17,7 +17,7 @@ from app.models import (
     Purchase,
 )
 from app.parsers import parse_file
-from app.services.linking import find_company_by_contact_name, find_or_create_company, find_or_create_contact
+from app.services.linking import find_or_create_company, find_or_create_contact, resolve_company
 from app.services.product_detection import classify_company_form, detect_form_in_text
 from app.utils.normalize import normalize_supplier_name
 
@@ -114,11 +114,10 @@ def _persist_extraction(
 
     company = None
     if result.company_name:
-        if source_type == "whatsapp":
-            company = find_company_by_contact_name(db, result.company_name)
-        if not company:
-            company = find_or_create_company(db, result.company_name)
+        company = resolve_company(db, result.company_name, source_type=source_type)
         companies_touched.append(company)
+
+    internal_domains = {"happytablefoods.com", "sulablu.com", "zihni.com"}
 
     for parsed_contact in result.contacts:
         if (
@@ -127,6 +126,10 @@ def _persist_extraction(
             and not parsed_contact.email
         ):
             continue
+        if source_type == "email" and parsed_contact.email:
+            domain = parsed_contact.email.split("@")[-1].lower()
+            if any(domain == d or domain.endswith("." + d) for d in internal_domains):
+                continue
         contact_company = company
         if parsed_contact.company_name:
             contact_company = find_or_create_company(db, parsed_contact.company_name)
@@ -175,6 +178,17 @@ def _persist_extraction(
             continue
 
         product = _get_or_create_product(db, interest.product_name)
+        existing = (
+            db.query(ProductInterest)
+            .filter(
+                ProductInterest.company_id == target.id,
+                ProductInterest.product_name_raw.ilike(interest.product_name.strip()),
+                ProductInterest.source == (interest.source or source_type),
+            )
+            .first()
+        )
+        if existing:
+            continue
         db.add(
             ProductInterest(
                 company_id=target.id,
@@ -201,6 +215,7 @@ def _persist_extraction(
                     company_id=target.id,
                     interaction_type=itype,
                     content=(msg.content or "")[:5000],
+                    subject=(msg.subject or "")[:500] or None,
                     interaction_date=_parse_datetime(msg.timestamp),
                     sender=msg.sender,
                     document_id=document_id,

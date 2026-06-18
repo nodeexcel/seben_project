@@ -11,7 +11,7 @@
 |---|---|---|
 | **M1 — Design & Prototype** | **Complete** | Schema + UI signed off by client |
 | **M2 — Historical Data Processing** | **Complete** | Drive 2022–2026, cleanup done |
-| **M3 — Communication Intelligence** | Pending | WhatsApp/email samples in; full timeline UI pending |
+| **M3 — Communication Intelligence** | **Complete** | WhatsApp + email samples imported; timeline in UI |
 | **M4 — CRM Application Completion** | **Complete** | Search, edit, merge, timeline |
 | **M5 — Final Delivery** | Pending | Live on server; handoff + automation pending |
 
@@ -72,22 +72,23 @@
 
 ---
 
-## M3 — Communication Intelligence (pending)
+## M3 — Communication Intelligence ✅ Complete
 
-### Done (backend)
+### Done
 
-- [x] WhatsApp and email parsers
+- [x] WhatsApp and email parsers (subject-based company matching for email)
 - [x] Interactions and product interests stored in database
-- [x] Fresh/Frozen product detection from text
+- [x] Fresh/Frozen product detection from message text
+- [x] Sample WhatsApp exports imported (`samples/Whatsapp Conversations` — 2 chats, ~1,456 messages)
+- [x] Sample emails imported (`samples/Email examples` — 15 `.eml` files)
+- [x] Fuzzy company linking (e.g. NETTUNO subject → existing Nettuno company)
+- [x] Communication timeline on company profile (via M4)
+- [x] Import script: `backend/scripts/import_communications.py` (`--resync` to reimport)
 
-### Pending
+### Explicitly not in scope
 
-- [ ] Full historical WhatsApp/email import (if client provides exports)
-- [ ] Optional AI customer summaries (OpenAI — not started)
-
-### Done in UI (via M4)
-
-- [x] Communication timeline on company profile
+- AI customer summaries (deferred — not requested for this phase)
+- Full historical WhatsApp/email archive (awaiting additional client exports if needed)
 
 ---
 

@@ -2,7 +2,7 @@
 
 Web-based CRM that processes WhatsApp conversations, emails, contacts, and PDF invoices into a centralized customer intelligence database.
 
-**Current status:** M1–M4 complete. M5 (handoff) remaining.
+**Current status:** M1–M4 complete (including M3 communication import). M5 (handoff) remaining.
 
 ## Milestones
 
@@ -10,7 +10,7 @@ Web-based CRM that processes WhatsApp conversations, emails, contacts, and PDF i
 |---|---|
 | M1 — Design & Prototype | **Complete** |
 | M2 — Historical Data Processing | **Complete** |
-| M3 — Communication Intelligence | In progress |
+| M3 — Communication Intelligence | **Complete** |
 | M4 — CRM Application Completion | **Complete** |
 | M5 — Final Delivery | Pending |
 
@@ -26,7 +26,7 @@ See `docs/milestones.md` for full detail, client sign-off, and scope decisions.
 | Parsing | pdfplumber, vobject, mailbox |
 | Matching | rapidfuzz, phonenumbers |
 | Invoices | Google Drive API (service account) |
-| AI Summaries | OpenAI API (optional, M3) |
+| AI Summaries | OpenAI API (optional — not in current scope) |
 | Deploy | Docker Compose / AWS EC2 |
 
 ## Quick Start
@@ -65,6 +65,7 @@ python scripts/sync_all_drive.py 2026     # single year
 
 ```bash
 python scripts/import_samples.py
+python scripts/import_communications.py --resync   # WhatsApp + email only
 python scripts/cleanup_m2.py      # one-time / periodic data quality pass
 ```
 

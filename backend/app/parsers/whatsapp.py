@@ -6,7 +6,7 @@ from app.parsers.base import ExtractionOutput, ParsedContact, ParsedMessage, Par
 from app.services.product_detection import detect_form_in_text, detect_products_in_text
 
 WHATSAPP_PATTERN = re.compile(
-    r"^\[(\d{1,2}/\d{1,2}/\d{2,4},\s*\d{1,2}:\d{2}(?::\d{2})?(?:\s*[APMapm]{2})?)\]\s([^:]+):\s(.*)$"
+    r"^[\u200e\u200f]?\[(\d{1,2}/\d{1,2}/\d{2,4},\s*\d{1,2}:\d{2}(?::\d{2})?(?:\s*[APMapm]{2})?)\]\s([^:]+):\s(.*)$"
 )
 
 INTERNAL_SENDERS = {"mehmet göle", "mehmet gole", "you"}

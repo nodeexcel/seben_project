@@ -27,6 +27,7 @@ class ParsedMessage:
     sender: str | None = None
     content: str | None = None
     timestamp: str | None = None
+    subject: str | None = None
 
 
 @dataclass
@@ -67,7 +68,12 @@ class ExtractionOutput:
                 for p in self.purchases
             ],
             "messages": [
-                {"sender": m.sender, "content": m.content, "timestamp": m.timestamp}
+                {
+                    "sender": m.sender,
+                    "content": m.content,
+                    "timestamp": m.timestamp,
+                    "subject": m.subject,
+                }
                 for m in self.messages
             ],
             "product_interests": [
