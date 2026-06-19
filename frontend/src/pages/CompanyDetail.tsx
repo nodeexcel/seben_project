@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type {
   CompanyDetail,
@@ -20,6 +20,7 @@ function formatDateTime(value: string | null) {
 
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const companyId = Number(id);
 
   const [company, setCompany] = useState<CompanyDetail | null>(null);
@@ -130,6 +131,27 @@ export default function CompanyDetailPage() {
         setEditingContactId(null);
         setContactDraft(emptyContact);
       }
+    });
+  };
+
+  const deleteCompany = () => {
+    if (!company) return;
+    if (company.purchase_count > 0) {
+      window.alert(
+        `This company has ${company.purchase_count} purchase record(s) from invoices and cannot be deleted. Use merge if it is a duplicate.`,
+      );
+      return;
+    }
+    if (
+      !window.confirm(
+        `Delete "${company.name}" and all its contacts, messages, and product interests? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    runAction(async () => {
+      await api.deleteCompany(companyId);
+      navigate('/companies');
     });
   };
 
@@ -469,6 +491,26 @@ export default function CompanyDetailPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="card danger-zone" style={{ marginTop: '1rem' }}>
+        <h3 style={{ marginTop: 0 }}>Delete Company</h3>
+        <p style={{ color: '#64748b', marginTop: 0 }}>
+          Remove this company from the CRM. Use this for personal contacts or entries that should not be customers.
+        </p>
+        {company.purchase_count > 0 ? (
+          <p style={{ color: '#b45309', marginBottom: '0.75rem' }}>
+            This company has {company.purchase_count} purchase record(s) from invoices and cannot be deleted.
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className="btn btn-danger btn-sm"
+          disabled={saving || company.purchase_count > 0}
+          onClick={deleteCompany}
+        >
+          Delete company
+        </button>
       </div>
     </div>
   );

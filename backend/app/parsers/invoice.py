@@ -20,11 +20,34 @@ TUMay_PKL_PATTERN = re.compile(r"^PKL[_\s]?\d*\s+(.+?)\.pdf$", re.I)
 ZIHNI_INV_PATTERN = re.compile(r"\d+\s+(.+?)\s+INVOICE", re.I)
 MUTLU_INV_PATTERN = re.compile(r"^(MUT20\d+)\.pdf$", re.I)
 COMPANY_PATTERNS = [
-    re.compile(r"(?:invoice address|name)\s*:\s*(.+)", re.I),
+    re.compile(r"(?:invoice address|bill\s*to|sold\s*to|customer)\s*:\s*(.+)", re.I),
     re.compile(r"^name\s*:\s*(.+)$", re.I),
     re.compile(r"company name\s+(.+?)(?:\s+date|\s*$)", re.I),
-    re.compile(r"^([A-Z][A-Z\s.&]+(?:S\.?P\.?A\.?|SRL|SPA|LTD|LLC|GMBH))\s*$"),
+    re.compile(r"^([A-Z][A-Z\s.&'-]+(?:S\.?P\.?A\.?|SRL|SPA|LTD|LLC|GMBH|S\.?L\.?U\.?))\s*$"),
 ]
+SPANISH_INVOICE_BUYER_PATTERNS = [
+    re.compile(r"FACTURA\s+VENTA\s*\n\s*([^\n]+)", re.I),
+    re.compile(r"Envio a[-\s]*(?:Direccion)?\s*\n\s*([^\n]+)", re.I),
+]
+COMPANY_SUFFIX_RE = re.compile(
+    r"\b(S\.?P\.?A\.?|S\.?R\.?L\.?|S\.?L\.?U\.?|SNC|SAS|LTD|LLC|GMBH|AG|NV|BV|SCR?L)\b",
+    re.I,
+)
+INVALID_COMPANY_SUBSTRINGS = (
+    "zona de produccion",
+    "pais de origen",
+    "metodo de produccion",
+    "registro sanitario",
+    "products we work with",
+    "#sayi/",
+    "description of goods",
+    "commercial invoice",
+    "net weight",
+    "gross weight",
+)
+COMPANY_SUFFIX_WORDS = {
+    "snc", "sas", "srl", "spa", "slu", "ltd", "llc", "gmbh", "ag", "nv", "bv", "scrl", "scr",
+}
 SUPPORTING_DOC_KEYWORDS = (
     "PKL_",
     "PACKING LIST",
@@ -92,7 +115,14 @@ def parse_invoice(filepath: str) -> ExtractionOutput:
         output.raw_text = full_text[:8000]
         output.metadata["char_count"] = len(full_text)
 
-        output.company_name = _extract_buyer_company(full_text, filename)
+        if doc_role == "supporting":
+            output.company_name = _extract_company_from_filename(filename)
+            if output.company_name and not is_plausible_company_name(
+                output.company_name, allow_short=True
+            ):
+                output.company_name = None
+        else:
+            output.company_name = _extract_buyer_company(full_text, filename)
 
         if doc_role == "invoice":
             output.contacts.extend(_extract_contacts(full_text))
@@ -127,26 +157,75 @@ def _extract_company_from_filename(filename: str) -> str | None:
 
 
 def _extract_buyer_company(text: str, filename: str) -> str | None:
+    from_filename = _extract_company_from_filename(filename)
+    if from_filename and is_plausible_company_name(from_filename, allow_short=True):
+        return from_filename
+
+    for pattern in SPANISH_INVOICE_BUYER_PATTERNS:
+        match = pattern.search(text)
+        if match:
+            name = _clean_company_name(match.group(1))
+            if is_plausible_company_name(name):
+                return name
+
     for pattern in COMPANY_PATTERNS:
         match = pattern.search(text)
         if match:
-            name = match.group(1).strip()
-            if len(name) > 2 and "invoice" not in name.lower():
-                return _clean_company_name(name)
-
-    from_filename = _extract_company_from_filename(filename)
-    if from_filename:
-        return from_filename
+            name = _clean_company_name(match.group(1).strip())
+            if is_plausible_company_name(name):
+                return name
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
-    skip = {"commercial invoice", "invoice", "description", "total", "bank", "producer"}
-    for line in lines[:15]:
-        lower = line.lower()
-        if any(kw in lower for kw in skip):
+    for line in lines[:30]:
+        if not COMPANY_SUFFIX_RE.search(line):
             continue
-        if re.search(r"(S\.?P\.?A\.?|SRL|SPA|LTD)", line, re.I):
-            return _clean_company_name(line)
+        name = _clean_company_name(line)
+        if is_plausible_company_name(name):
+            return name
+
     return None
+
+
+def is_plausible_company_name(name: str, *, allow_short: bool = False) -> bool:
+    """Reject invoice metadata, species names, and product labels mistaken for companies."""
+    cleaned = name.strip()
+    if len(cleaned) < 3:
+        return False
+
+    lower = cleaned.lower()
+    if any(sub in lower for sub in INVALID_COMPANY_SUBSTRINGS):
+        return False
+    if "|" in cleaned or "#" in cleaned:
+        return False
+    if _looks_like_scientific_name(cleaned):
+        return False
+
+    if COMPANY_SUFFIX_RE.search(cleaned):
+        return True
+    if allow_short:
+        words = [word for word in cleaned.split() if word]
+        if len(words) >= 2 and all(word[0].isupper() for word in words):
+            return True
+        if len(words) == 1 and len(cleaned) >= 4 and cleaned[0].isupper():
+            return True
+    if len(cleaned.split()) >= 3:
+        return True
+    return False
+
+
+def _looks_like_scientific_name(name: str) -> bool:
+    parts = name.strip().split()
+    if len(parts) != 2:
+        return False
+    genus, species = parts
+    if species.lower() in COMPANY_SUFFIX_WORDS:
+        return False
+    return (
+        genus[0].isupper()
+        and genus[1:].islower()
+        and species.islower()
+        and species.isalpha()
+    )
 
 
 def _clean_company_name(name: str) -> str:

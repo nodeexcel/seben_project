@@ -113,7 +113,12 @@ def _persist_extraction(
     form_signals: set[str] = set()
 
     company = None
-    if result.company_name:
+    skip_company = (
+        source_type == "invoice"
+        and result.metadata.get("skipped") == "supporting_document"
+        and not result.purchases
+    )
+    if result.company_name and not skip_company:
         company = resolve_company(db, result.company_name, source_type=source_type)
         companies_touched.append(company)
 

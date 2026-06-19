@@ -14,6 +14,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(formatErrorDetail(err.detail));
   }
+  if (res.status === 204) {
+    return undefined as T;
+  }
   return res.json();
 }
 
@@ -152,6 +155,9 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }),
+
+  deleteCompany: (id: number) =>
+    request<void>(`/api/companies/${id}`, { method: 'DELETE' }),
 
   getInteractions: (companyId: number, limit = 100) =>
     request<InteractionBrief[]>(`/api/companies/${companyId}/interactions?limit=${limit}`),

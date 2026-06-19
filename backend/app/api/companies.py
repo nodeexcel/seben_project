@@ -210,6 +210,28 @@ def update_company(company_id: int, payload: CompanyUpdate, db: Session = Depend
     return _build_company_detail(db, company_id)
 
 
+@router.delete("/{company_id}", status_code=204)
+def delete_company(company_id: int, db: Session = Depends(get_db)):
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    purchase_count = (
+        db.query(func.count(Purchase.id)).filter(Purchase.company_id == company_id).scalar() or 0
+    )
+    if purchase_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Cannot delete a company with {purchase_count} purchase record(s). "
+                "Merge it into another company or contact support."
+            ),
+        )
+
+    db.delete(company)
+    db.commit()
+
+
 @router.post("/{company_id}/contacts", response_model=CompanyDetail, status_code=201)
 def add_contact(company_id: int, payload: ContactCreate, db: Session = Depends(get_db)):
     _build_company_detail(db, company_id)
