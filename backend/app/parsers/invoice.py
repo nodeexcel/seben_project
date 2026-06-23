@@ -244,6 +244,17 @@ def _extract_contacts(text: str) -> list[ParsedContact]:
 
 
 def _clean_product_name(raw: str) -> str:
+    weight_match = re.search(
+        r"Gr\.\s*Weight\s*:.*?kg\s+(.+?)(?:\s+0[,.]00)?$",
+        raw,
+        re.I,
+    )
+    if weight_match:
+        raw = weight_match.group(1).strip()
+
+    if "CIP" in raw.upper():
+        raw = re.split(r"\bCIP\b", raw, maxsplit=1, flags=re.I)[0]
+
     name = BARCODE_PATTERN.sub("", raw)
     name = HS_CODE_PATTERN.sub("", name)
     name = re.sub(r"^\d+\s+", "", name)
@@ -253,6 +264,9 @@ def _clean_product_name(raw: str) -> str:
         name,
         flags=re.I,
     )
+    name = re.sub(r"\(\d+\s*KG\)", "", name, flags=re.I)
+    name = re.sub(r"\d+/\d+", "", name)
+    name = re.sub(r"\s+\d+[,.]\d+\s*$", "", name)
     name = re.sub(r"\s+", " ", name).strip(" -/")
     return name[:255]
 

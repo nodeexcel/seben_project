@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import type { CustomerAnalytics, ProductAnalytics } from '../api/client';
 
@@ -15,10 +16,11 @@ export default function Analytics() {
     const params = {
       date_from: dateFrom || undefined,
       date_to: dateTo || undefined,
+      product: productFilter || undefined,
     };
     Promise.all([
       api.customerAnalytics(params),
-      api.productAnalytics({ ...params, product: productFilter || undefined }),
+      api.productAnalytics(params),
     ])
       .then(([c, p]) => { setCustomers(c); setProducts(p); })
       .catch(() => { setCustomers([]); setProducts([]); })
@@ -26,6 +28,8 @@ export default function Analytics() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const formatMoney = (value: number) => `€${value.toLocaleString()}`;
 
   return (
     <div>
@@ -38,9 +42,10 @@ export default function Analytics() {
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
         <input
-          placeholder="Filter by product..."
+          placeholder="Filter by product (e.g. gambero, orata)..."
           value={productFilter}
           onChange={(e) => setProductFilter(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && load()}
         />
         <button className="btn btn-primary" onClick={load}>Apply Filters</button>
       </div>
@@ -51,7 +56,7 @@ export default function Analytics() {
           {loading ? (
             <div className="empty-state">Loading...</div>
           ) : customers.length === 0 ? (
-            <div className="empty-state">No purchase data yet</div>
+            <div className="empty-state">No matching purchases for these filters</div>
           ) : (
             <table>
               <thead>
@@ -60,8 +65,12 @@ export default function Analytics() {
               <tbody>
                 {customers.map((c) => (
                   <tr key={c.company_id}>
-                    <td>{c.company_name}</td>
-                    <td>${c.total_revenue.toLocaleString()}</td>
+                    <td>
+                      <Link to={`/companies/${c.company_id}`} className="link">
+                        {c.company_name}
+                      </Link>
+                    </td>
+                    <td>{formatMoney(c.total_revenue)}</td>
                     <td>{c.total_quantity.toLocaleString()}</td>
                     <td>{c.purchase_count}</td>
                   </tr>
@@ -76,18 +85,18 @@ export default function Analytics() {
           {loading ? (
             <div className="empty-state">Loading...</div>
           ) : products.length === 0 ? (
-            <div className="empty-state">No product data yet</div>
+            <div className="empty-state">No matching product data for these filters</div>
           ) : (
             <table>
               <thead>
                 <tr><th>Product</th><th>Customers</th><th>Revenue</th><th>Qty</th></tr>
               </thead>
               <tbody>
-                {products.map((p, i) => (
-                  <tr key={i}>
+                {products.map((p) => (
+                  <tr key={p.product_name}>
                     <td>{p.product_name}</td>
                     <td>{p.customer_count}</td>
-                    <td>${p.total_revenue.toLocaleString()}</td>
+                    <td>{formatMoney(p.total_revenue)}</td>
                     <td>{p.total_quantity.toLocaleString()}</td>
                   </tr>
                 ))}

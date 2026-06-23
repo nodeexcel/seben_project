@@ -213,10 +213,11 @@ export const api = {
   supportedTypes: () =>
     request<{ types: SupportedType[] }>('/api/upload/supported-types'),
 
-  customerAnalytics: (params?: { date_from?: string; date_to?: string }) => {
+  customerAnalytics: (params?: { date_from?: string; date_to?: string; product?: string }) => {
     const search = new URLSearchParams();
     if (params?.date_from) search.set('date_from', params.date_from);
     if (params?.date_to) search.set('date_to', params.date_to);
+    if (params?.product) search.set('product', params.product);
     const qs = search.toString();
     return request<CustomerAnalytics[]>(`/api/analytics/customers${qs ? `?${qs}` : ''}`);
   },
