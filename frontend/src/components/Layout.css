@@ -400,6 +400,44 @@ tr:hover td {
   gap: 1rem;
 }
 
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #2563eb;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.breakdown-row td {
+  background: #f8fafc;
+  padding-top: 0;
+}
+
+.breakdown-panel {
+  padding: 0.75rem 0.5rem 1rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.breakdown-table {
+  margin: 0.25rem 0 0.75rem 1.5rem;
+  width: calc(100% - 1.5rem);
+}
+
+.breakdown-table th {
+  font-size: 0.75rem;
+}
+
+.breakdown-table td {
+  font-size: 0.85rem;
+}
+
 @media (max-width: 768px) {
   .app-shell { flex-direction: column; }
   .sidebar { width: 100%; }

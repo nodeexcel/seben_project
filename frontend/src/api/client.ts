@@ -120,6 +120,15 @@ export interface ProductAnalytics {
   total_revenue: number;
 }
 
+export interface InactiveClientAnalytics {
+  company_id: number;
+  company_name: string;
+  last_purchase_date: string | null;
+  days_since_last_order: number | null;
+  total_historical_revenue: number;
+  total_historical_orders: number;
+}
+
 export interface SupportedType {
   id: string;
   label: string;
@@ -222,12 +231,21 @@ export const api = {
     return request<CustomerAnalytics[]>(`/api/analytics/customers${qs ? `?${qs}` : ''}`);
   },
 
-  productAnalytics: (params?: { product?: string; date_from?: string; date_to?: string }) => {
+  productAnalytics: (params?: {
+    product?: string;
+    date_from?: string;
+    date_to?: string;
+    company_id?: number;
+  }) => {
     const search = new URLSearchParams();
     if (params?.product) search.set('product', params.product);
     if (params?.date_from) search.set('date_from', params.date_from);
     if (params?.date_to) search.set('date_to', params.date_to);
+    if (params?.company_id != null) search.set('company_id', String(params.company_id));
     const qs = search.toString();
     return request<ProductAnalytics[]>(`/api/analytics/products${qs ? `?${qs}` : ''}`);
   },
+
+  inactiveClients: (months = 6) =>
+    request<InactiveClientAnalytics[]>(`/api/analytics/inactive?months=${months}`),
 };

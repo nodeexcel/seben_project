@@ -180,6 +180,15 @@ class ProductAnalytics(BaseModel):
     total_revenue: float
 
 
+class InactiveClientAnalytics(BaseModel):
+    company_id: int
+    company_name: str
+    last_purchase_date: date | None = None
+    days_since_last_order: int | None = None
+    total_historical_revenue: float
+    total_historical_orders: int
+
+
 # --- Upload / Extraction ---
 
 class ExtractionResult(BaseModel):
